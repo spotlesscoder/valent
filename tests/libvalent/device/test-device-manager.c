@@ -26,20 +26,21 @@ static void
 manager_fixture_set_up (ManagerFixture *fixture,
                         gconstpointer   user_data)
 {
-  const char *path = NULL;
-  g_autoptr (ValentData) data = NULL;
+  const char *cache_path = NULL;
+  g_autoptr (ValentContext) context = NULL;
+  g_autoptr (GFile) cache = NULL;
   g_autoptr (JsonNode) state = NULL;
   g_autofree char *state_json = NULL;
   g_autofree char *state_path = NULL;
 
   /* Copy the mock device configuration */
-  data = valent_data_new (NULL, NULL);
-  path = valent_data_get_cache_path (data);
-  g_mkdir_with_parents (path, 0700);
+  context = valent_context_new (NULL, NULL, NULL);
+  cache = valent_context_create_cache_file (context, ".");
+  cache_path = g_file_peek_path (cache);
 
   state = valent_test_load_json (TEST_DATA_DIR"/core-state.json");
   state_json = json_to_string (state, TRUE);
-  state_path = g_build_filename (path, "devices.json", NULL);
+  state_path = g_build_filename (cache_path, "devices.json", NULL);
   g_file_set_contents (state_path, state_json, -1, NULL);
 
   /* Init the manager */

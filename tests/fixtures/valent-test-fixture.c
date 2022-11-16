@@ -87,15 +87,18 @@ valent_test_fixture_init (ValentTestFixture *fixture,
     {
       PeasPluginInfo *plugin_info = g_ptr_array_index (plugins, i);
       const char *module_name = peas_plugin_info_get_module_name (plugin_info);
-      const char *device_id;
+      g_autoptr (ValentContext) context = NULL;
+      g_autoptr (ValentContext) plugin_context = NULL;
 
       if (strcmp (module_name, "mock") == 0 ||
           strcmp (module_name, "packetless") == 0)
         continue;
 
-      device_id = valent_device_get_id (fixture->device);
-      fixture->settings = valent_device_plugin_create_settings (plugin_info,
-                                                                device_id);
+      context = valent_device_ref_context (fixture->device);
+      plugin_context = valent_context_new_for_plugin (context, plugin_info);
+      fixture->settings = valent_context_create_plugin_settings (plugin_context,
+                                                                 plugin_info,
+                                                                 "X-DevicePluginSettings");
       break;
     }
 }

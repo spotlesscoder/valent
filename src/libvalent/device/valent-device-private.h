@@ -8,7 +8,7 @@
 G_BEGIN_DECLS
 
 ValentDevice * valent_device_new_full      (JsonNode      *identity,
-                                            ValentData    *data);
+                                            ValentContext *context);
 void           valent_device_handle_packet (ValentDevice  *device,
                                             JsonNode      *packet);
 void           valent_device_set_channel   (ValentDevice  *device,

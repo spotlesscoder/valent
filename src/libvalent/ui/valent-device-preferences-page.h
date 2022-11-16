@@ -26,7 +26,8 @@ struct _ValentDevicePreferencesPageClass
 };
 
 VALENT_AVAILABLE_IN_1_0
-GSettings * valent_device_preferences_page_get_settings (ValentDevicePreferencesPage *page);
+ValentContext * valent_device_preferences_page_get_context  (ValentDevicePreferencesPage *page);
+GSettings     * valent_device_preferences_page_get_settings (ValentDevicePreferencesPage *page);
 
 G_END_DECLS
 

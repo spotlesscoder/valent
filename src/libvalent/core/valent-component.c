@@ -29,7 +29,7 @@
 typedef struct
 {
   PeasEngine    *engine;
-  char          *plugin_context;
+  char          *plugin_domain;
   char          *plugin_priority;
   GType          plugin_type;
   GHashTable    *plugins;
@@ -49,7 +49,7 @@ G_DEFINE_ABSTRACT_TYPE_WITH_PRIVATE (ValentComponent, valent_component, VALENT_T
 
 enum {
   PROP_0,
-  PROP_PLUGIN_CONTEXT,
+  PROP_PLUGIN_DOMAIN,
   PROP_PLUGIN_PRIORITY,
   PROP_PLUGIN_TYPE,
   N_PROPERTIES
@@ -296,7 +296,7 @@ on_load_plugin (PeasEngine      *engine,
   plugin = g_new0 (ComponentPlugin, 1);
   plugin->component = self;
   plugin->info = info;
-  plugin->settings = valent_component_create_settings (priv->plugin_context,
+  plugin->settings = valent_component_create_settings (priv->plugin_domain,
                                                        module);
   g_hash_table_insert (priv->plugins, info, plugin);
 
@@ -395,7 +395,7 @@ valent_component_constructed (GObject *object)
   ValentComponentPrivate *priv = valent_component_get_instance_private (self);
   const GList *plugins = NULL;
 
-  g_assert (priv->plugin_context != NULL);
+  g_assert (priv->plugin_domain != NULL);
   g_assert (priv->plugin_type != G_TYPE_NONE);
 
   /* Setup PeasEngine */
@@ -441,7 +441,7 @@ valent_component_finalize (GObject *object)
   ValentComponent *self = VALENT_COMPONENT (object);
   ValentComponentPrivate *priv = valent_component_get_instance_private (self);
 
-  g_clear_pointer (&priv->plugin_context, g_free);
+  g_clear_pointer (&priv->plugin_domain, g_free);
   g_clear_pointer (&priv->plugin_priority, g_free);
   g_clear_pointer (&priv->plugins, g_hash_table_unref);
 
@@ -459,8 +459,8 @@ valent_component_get_property (GObject    *object,
 
   switch (prop_id)
     {
-    case PROP_PLUGIN_CONTEXT:
-      g_value_set_string (value, priv->plugin_context);
+    case PROP_PLUGIN_DOMAIN:
+      g_value_set_string (value, priv->plugin_domain);
       break;
 
     case PROP_PLUGIN_PRIORITY:
@@ -487,8 +487,8 @@ valent_component_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_PLUGIN_CONTEXT:
-      priv->plugin_context = g_value_dup_string (value);
+    case PROP_PLUGIN_DOMAIN:
+      priv->plugin_domain = g_value_dup_string (value);
       break;
 
     case PROP_PLUGIN_PRIORITY:
@@ -529,8 +529,8 @@ valent_component_class_init (ValentComponentClass *klass)
    *
    * Since: 1.0
    */
-  properties [PROP_PLUGIN_CONTEXT] =
-    g_param_spec_string ("plugin-context", NULL, NULL,
+  properties [PROP_PLUGIN_DOMAIN] =
+    g_param_spec_string ("plugin-domain", NULL, NULL,
                          NULL,
                          (G_PARAM_READWRITE |
                           G_PARAM_CONSTRUCT_ONLY |

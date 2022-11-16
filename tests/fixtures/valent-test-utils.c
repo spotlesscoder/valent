@@ -497,7 +497,7 @@ static void
 valent_type_ensure (void)
 {
   /* Core */
-  g_type_ensure (VALENT_TYPE_DATA);
+  g_type_ensure (VALENT_TYPE_CONTEXT);
   g_type_ensure (VALENT_TYPE_OBJECT);
   g_type_ensure (VALENT_TYPE_COMPONENT);
   g_type_ensure (VALENT_TYPE_TRANSFER);

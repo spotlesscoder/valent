@@ -7,8 +7,6 @@
 # error "Only <libvalent-core.h> can be included directly."
 #endif
 
-#include <gio/gio.h>
-
 #include "valent-object.h"
 
 G_BEGIN_DECLS

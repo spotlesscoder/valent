@@ -11,7 +11,6 @@
 #include <libpeas/peas.h>
 
 #include "valent-object.h"
-#include "valent-version.h"
 
 G_BEGIN_DECLS
 

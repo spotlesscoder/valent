@@ -41,7 +41,7 @@ struct _ValentDevice
 {
   ValentObject    parent_instance;
 
-  ValentData     *data;
+  ValentContext  *context;
   GSettings      *settings;
 
   /* Properties */
@@ -79,7 +79,7 @@ G_DEFINE_TYPE_WITH_CODE (ValentDevice, valent_device, VALENT_TYPE_OBJECT,
 
 enum {
   PROP_0,
-  PROP_DATA,
+  PROP_CONTEXT,
   PROP_ICON_NAME,
   PROP_ID,
   PROP_NAME,
@@ -194,6 +194,7 @@ g_action_group_iface_init (GActionGroupInterface *iface)
 typedef struct
 {
   ValentDevice   *device;
+  ValentContext  *context;
   PeasPluginInfo *info;
   PeasExtension  *extension;
   GSettings      *settings;
@@ -211,6 +212,7 @@ device_plugin_free (gpointer data)
       g_clear_object (&plugin->extension);
     }
 
+  g_clear_object (&plugin->context);
   g_clear_object (&plugin->settings);
   g_clear_pointer (&plugin, g_free);
 }
@@ -298,7 +300,8 @@ valent_device_enable_plugin (ValentDevice *device,
   plugin->extension = peas_engine_create_extension (device->engine,
                                                     plugin->info,
                                                     VALENT_TYPE_DEVICE_PLUGIN,
-                                                    "device", device,
+                                                    "context", plugin->context,
+                                                    "device",  plugin->device,
                                                     NULL);
   g_return_if_fail (PEAS_IS_EXTENSION (plugin->extension));
 
@@ -704,8 +707,6 @@ on_load_plugin (PeasEngine     *engine,
                 ValentDevice   *device)
 {
   DevicePlugin *plugin;
-  const char *module;
-  g_autofree char *path = NULL;
 
   g_assert (PEAS_IS_ENGINE (engine));
   g_assert (info != NULL);
@@ -722,15 +723,12 @@ on_load_plugin (PeasEngine     *engine,
                peas_plugin_info_get_module_name (info));
 
   /* Register the plugin & data (hash tables are ref owners) */
-  module = peas_plugin_info_get_module_name (info);
-  path = g_strdup_printf ("/ca/andyholmes/valent/device/%s/plugin/%s/",
-                          device->id, module);
-
   plugin = g_new0 (DevicePlugin, 1);
+  plugin->context = valent_context_new_for_plugin (device->context, info);
   plugin->device = device;
   plugin->info = info;
-  plugin->settings = g_settings_new_with_path ("ca.andyholmes.Valent.Plugin",
-                                               path);
+  plugin->settings = valent_context_create_settings (plugin->context,
+                                                     "ca.andyholmes.Valent.Plugin");
   g_hash_table_insert (device->plugins, info, plugin);
 
   /* The PeasExtension is created and destroyed based on the enabled state */
@@ -823,8 +821,8 @@ valent_device_constructed (GObject *object)
   g_assert (self->id != NULL);
 
   /* Data Manager */
-  if (self->data == NULL)
-    self->data = valent_data_new (self->id, NULL);
+  if (self->context == NULL)
+    self->context = valent_context_new (NULL, "device", self->id);
 
   /* GSettings*/
   path = g_strdup_printf ("/ca/andyholmes/valent/device/%s/", self->id);
@@ -878,7 +876,7 @@ valent_device_finalize (GObject *object)
 {
   ValentDevice *self = VALENT_DEVICE (object);
 
-  g_clear_object (&self->data);
+  g_clear_object (&self->context);
   g_clear_object (&self->settings);
 
   /* Properties */
@@ -911,8 +909,8 @@ valent_device_get_property (GObject    *object,
 
   switch (prop_id)
     {
-    case PROP_DATA:
-      g_value_take_object (value, valent_device_ref_data (self));
+    case PROP_CONTEXT:
+      g_value_take_object (value, valent_device_ref_context (self));
       break;
 
     case PROP_ICON_NAME:
@@ -950,8 +948,8 @@ valent_device_set_property (GObject      *object,
 
   switch (prop_id)
     {
-    case PROP_DATA:
-      self->data = g_value_dup_object (value);
+    case PROP_CONTEXT:
+      self->context = g_value_dup_object (value);
       break;
 
     case PROP_ID:
@@ -1003,18 +1001,15 @@ valent_device_class_init (ValentDeviceClass *klass)
   object_class->set_property = valent_device_set_property;
 
   /**
-   * ValentDevice:data: (getter ref_data)
+   * ValentDevice:context: (getter ref_context)
    *
    * The data context.
    *
-   * This provides a relative point for files and settings, specific to the
-   * device in question.
-   *
    * Since: 1.0
    */
-  properties [PROP_DATA] =
-    g_param_spec_object ("data", NULL, NULL,
-                         VALENT_TYPE_DATA,
+  properties [PROP_CONTEXT] =
+    g_param_spec_object ("context", NULL, NULL,
+                         VALENT_TYPE_CONTEXT,
                          (G_PARAM_READWRITE |
                           G_PARAM_CONSTRUCT_ONLY |
                           G_PARAM_EXPLICIT_NOTIFY |
@@ -1179,15 +1174,15 @@ valent_device_new (const char *id)
 /*< private >
  * valent_device_new_full:
  * @identity: a KDE Connect identity packet
- * @data: (nullable): the data context
+ * @context: (nullable): a #ValentContext
  *
  * Create a new device for @identity.
  *
  * Returns: (transfer full) (nullable): a new #ValentDevice
  */
 ValentDevice *
-valent_device_new_full (JsonNode   *identity,
-                        ValentData *data)
+valent_device_new_full (JsonNode      *identity,
+                        ValentContext *context)
 {
   ValentDevice *ret;
   const char *id;
@@ -1201,8 +1196,8 @@ valent_device_new_full (JsonNode   *identity,
     }
 
   ret = g_object_new (VALENT_TYPE_DEVICE,
-                      "id",   id,
-                      "data", data,
+                      "id",      id,
+                      "context", context,
                       NULL);
   valent_device_handle_identity (ret, identity);
 
@@ -1533,25 +1528,25 @@ valent_device_set_channel (ValentDevice  *device,
 }
 
 /**
- * valent_device_ref_data: (get-property data)
+ * valent_device_ref_context: (get-property context)
  * @device: a #ValentDevice
  *
- * Get the data context for the device.
+ * Get the data context.
  *
- * Returns: (transfer full): a #ValentData
+ * Returns: (transfer full): a #ValentContext
  *
  * Since: 1.0
  */
-ValentData *
-valent_device_ref_data (ValentDevice *device)
+ValentContext *
+valent_device_ref_context (ValentDevice *device)
 {
-  ValentData *ret = NULL;
+  ValentContext *ret = NULL;
 
   g_return_val_if_fail (VALENT_IS_DEVICE (device), NULL);
 
   valent_object_lock (VALENT_OBJECT (device));
-  if (device->data != NULL)
-    ret = g_object_ref (device->data);
+  if (device->context != NULL)
+    ret = g_object_ref (device->context);
   valent_object_unlock (VALENT_OBJECT (device));
 
   return ret;
@@ -1661,9 +1656,9 @@ valent_device_set_paired (ValentDevice *device,
 
   /* FIXME: If we're connected store/clear connection data */
   if (paired && device->channel != NULL)
-    valent_channel_store_data (device->channel, device->data);
+    valent_channel_store_data (device->channel, device->context);
   else if (!paired)
-    valent_data_clear_data (device->data);
+    valent_context_clear (device->context);
 
   device->paired = paired;
   g_settings_set_boolean (device->settings, "paired", device->paired);

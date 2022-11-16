@@ -321,7 +321,7 @@ valent_mpris_device_request_album_art (ValentMprisDevice *self,
 {
   JsonBuilder *builder;
   g_autoptr (JsonNode) packet = NULL;
-  g_autoptr (ValentData) data = NULL;
+  g_autoptr (ValentContext) context = NULL;
   g_autoptr (GFile) file = NULL;
   g_autofree char *filename = NULL;
 
@@ -329,9 +329,9 @@ valent_mpris_device_request_album_art (ValentMprisDevice *self,
   g_assert (url != NULL && *url != '\0');
   g_assert (metadata != NULL);
 
-  data = valent_device_ref_data (self->device);
+  context = valent_device_ref_context (self->device);
   filename = g_compute_checksum_for_string (G_CHECKSUM_MD5, url, -1);
-  file = valent_data_create_cache_file (data, filename);
+  file = valent_context_create_cache_file (context, filename);
 
   /* If the album art has been cached, update the metadata dictionary */
   if (g_file_query_exists (file, NULL))

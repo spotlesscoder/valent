@@ -37,7 +37,7 @@ struct _ValentDeviceManager
   ValentObject              parent_instance;
 
   GCancellable             *cancellable;
-  ValentData               *data;
+  ValentContext            *context;
   GTlsCertificate          *certificate;
   const char               *id;
   char                     *name;
@@ -350,9 +350,9 @@ valent_device_manager_enable_service (ValentDeviceManager *self,
   service->extension = peas_engine_create_extension (valent_get_plugin_engine (),
                                                      service->info,
                                                      VALENT_TYPE_CHANNEL_SERVICE,
-                                                     "data", self->data,
-                                                     "id",   self->id,
-                                                     "name", self->name,
+                                                     "context", self->context,
+                                                     "id",      self->id,
+                                                     "name",    self->name,
                                                      NULL);
   g_return_if_fail (PEAS_IS_EXTENSION (service->extension));
 
@@ -613,11 +613,11 @@ valent_device_manager_ensure_device (ValentDeviceManager *manager,
 
   if (valent_device_manager_lookup (manager, device_id) == NULL)
     {
+      g_autoptr (ValentContext) context = NULL;
       g_autoptr (ValentDevice) device = NULL;
-      g_autoptr (ValentData) data = NULL;
 
-      data = valent_data_new (device_id, manager->data);
-      device = valent_device_new_full (identity, data);
+      context = valent_context_new (manager->context, "device", device_id);
+      device = valent_device_new_full (identity, context);
 
       valent_device_manager_add_device (manager, device);
     }
@@ -637,16 +637,14 @@ valent_device_manager_load_state (ValentDeviceManager *self)
   if (self->state == NULL)
     {
       g_autoptr (JsonParser) parser = NULL;
-      g_autofree char *path = NULL;
+      g_autoptr (GFile) file = NULL;
 
-      path = g_build_filename (valent_data_get_cache_path (self->data),
-                               "devices.json",
-                               NULL);
+      file = valent_context_create_cache_file (self->context, "devices.json");
 
       /* Try to load the state file */
       parser = json_parser_new ();
 
-      if (json_parser_load_from_file (parser, path, NULL))
+      if (json_parser_load_from_file (parser, g_file_peek_path (file), NULL))
         self->state = json_parser_steal_root (parser);
 
       if (self->state == NULL || !JSON_NODE_HOLDS_OBJECT (self->state))
@@ -668,7 +666,7 @@ static void
 valent_device_manager_save_state (ValentDeviceManager *self)
 {
   g_autoptr (JsonGenerator) generator = NULL;
-  g_autofree char *path = NULL;
+  g_autoptr (GFile) file = NULL;
   g_autoptr (GError) error = NULL;
 
   g_assert (VALENT_IS_DEVICE_MANAGER (self));
@@ -678,11 +676,9 @@ valent_device_manager_save_state (ValentDeviceManager *self)
                             "root",   self->state,
                             NULL);
 
-  path = g_build_filename (valent_data_get_cache_path (self->data),
-                           "devices.json",
-                           NULL);
+  file = valent_context_create_cache_file (self->context, "devices.json");
 
-  if (!json_generator_to_file (generator, path, &error))
+  if (!json_generator_to_file (generator, g_file_peek_path (file), &error))
     g_warning ("%s(): %s", G_STRFUNC, error->message);
 }
 
@@ -700,7 +696,7 @@ valent_device_manager_initable_init (GInitable     *initable,
   g_assert (VALENT_IS_DEVICE_MANAGER (self));
 
   /* Generate certificate */
-  path = valent_data_get_config_path (self->data);
+  path = valent_context_get_config_path (self->context);
   self->certificate = valent_certificate_new_sync (path, error);
 
   if (self->certificate == NULL)
@@ -760,7 +756,7 @@ valent_device_manager_init_async (GAsyncInitable      *initable,
   g_task_set_priority (task, io_priority);
   g_task_set_source_tag (task, valent_device_manager_init_async);
 
-  path = valent_data_get_config_path (self->data);
+  path = valent_context_get_config_path (self->context);
   valent_certificate_new (path,
                           destroy,
                           valent_certificate_new_cb,
@@ -798,7 +794,7 @@ valent_device_manager_finalize (GObject *object)
   g_clear_pointer (&self->state, json_node_unref);
 
   g_clear_object (&self->certificate);
-  g_clear_object (&self->data);
+  g_clear_object (&self->context);
   g_clear_pointer (&self->name, g_free);
 
   G_OBJECT_CLASS (valent_device_manager_parent_class)->finalize (object);
@@ -873,7 +869,7 @@ valent_device_manager_class_init (ValentDeviceManagerClass *klass)
 static void
 valent_device_manager_init (ValentDeviceManager *self)
 {
-  self->data = valent_data_new (NULL, NULL);
+  self->context = valent_context_new (NULL, NULL, NULL);
   self->devices = g_ptr_array_new_with_free_func (g_object_unref);
   self->services = g_hash_table_new_full (NULL,
                                           NULL,
