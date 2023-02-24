@@ -11,6 +11,7 @@
 #include <libvalent-notifications.h>
 #include <libvalent-ui.h>
 
+#include "libvalent-ui-private.h"
 #include "valent-notification-dialog.h"
 
 
@@ -28,6 +29,7 @@ struct _ValentNotificationDialog
   GtkImage           *icon_image;
   GtkLabel           *title_label;
   GtkLabel           *body_label;
+  ValentDateLabel    *time_label;
   GtkWidget          *reply_frame;
   GtkTextView        *reply_entry;
 };
@@ -84,6 +86,7 @@ valent_notification_dialog_set_notification (ValentNotificationDialog *self,
   GIcon *icon;
   const char *title;
   const char *body;
+  gint64 timestamp;
 
   g_assert (VALENT_IS_NOTIFICATION_DIALOG (self));
   g_assert (notification == NULL || VALENT_IS_NOTIFICATION (notification));
@@ -104,6 +107,9 @@ valent_notification_dialog_set_notification (ValentNotificationDialog *self,
       label = valent_string_to_markup (body);
       gtk_label_set_label (self->body_label, label);
     }
+
+  if ((timestamp = valent_notification_get_time (self->notification)) != 0)
+    valent_date_label_set_date (self->time_label, timestamp);
 
   valent_notification_dialog_sync (self);
 }
@@ -261,6 +267,7 @@ valent_notification_dialog_class_init (ValentNotificationDialogClass *klass)
   gtk_widget_class_bind_template_child (widget_class, ValentNotificationDialog, icon_image);
   gtk_widget_class_bind_template_child (widget_class, ValentNotificationDialog, title_label);
   gtk_widget_class_bind_template_child (widget_class, ValentNotificationDialog, body_label);
+  gtk_widget_class_bind_template_child (widget_class, ValentNotificationDialog, time_label);
   gtk_widget_class_bind_template_child (widget_class, ValentNotificationDialog, reply_frame);
   gtk_widget_class_bind_template_child (widget_class, ValentNotificationDialog, reply_entry);
 
@@ -307,6 +314,8 @@ valent_notification_dialog_class_init (ValentNotificationDialogClass *klass)
                           G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_properties (object_class, N_PROPERTIES, properties);
+
+  g_type_ensure (VALENT_TYPE_DATE_LABEL);
 }
 
 static void

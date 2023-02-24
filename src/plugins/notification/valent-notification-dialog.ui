@@ -76,7 +76,6 @@
                         <child>
                           <object class="GtkLabel" id="title_label">
                             <property name="halign">start</property>
-                            <property name="hexpand">1</property>
                             <property name="label">No Title</property>
                             <attributes>
                               <attribute name="weight" value="bold"/>
@@ -85,6 +84,21 @@
                               <property name="column">1</property>
                               <property name="row">0</property>
                             </layout>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="ValentDateLabel" id="time_label">
+                            <property name="halign">start</property>
+                            <property name="hexpand">1</property>
+                            <property name="valign">end</property>
+                            <layout>
+                              <property name="column">2</property>
+                              <property name="row">0</property>
+                            </layout>
+                            <style>
+                              <class name="caption"/>
+                              <class name="dim-label"/>
+                            </style>
                           </object>
                         </child>
                         <child>
@@ -98,6 +112,7 @@
                             <layout>
                               <property name="column">1</property>
                               <property name="row">1</property>
+                              <property name="column-span">2</property>
                             </layout>
                           </object>
                         </child>
