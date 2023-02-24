@@ -19,270 +19,26 @@ struct _ValentRuncommandPreferences
 {
   ValentDevicePreferencesPage  parent_instance;
 
-  GtkWindow                   *command_dialog;
+  GtkWindow                   *editor;
 
   /* template */
   AdwPreferencesGroup         *command_group;
   GtkListBox                  *command_list;
-  GtkWidget                   *command_add;
-
-  AdwPreferencesGroup         *restrictions_group;
-  GtkSwitch                   *isolate_subprocesses;
+  GtkWidget                   *command_placeholder;
 };
 
 G_DEFINE_FINAL_TYPE (ValentRuncommandPreferences, valent_runcommand_preferences, VALENT_TYPE_DEVICE_PREFERENCES_PAGE)
 
 
-static void edit_command      (ValentRuncommandPreferences *self,
-                               const char                  *uuid,
-                               const char                  *name,
-                               const char                  *command);
-static void remove_command    (ValentRuncommandPreferences *self,
-                               const char                  *uuid);
-static void populate_commands (ValentRuncommandPreferences *self);
-static void save_command      (ValentRuncommandPreferences *self,
-                               const char                  *uuid,
-                               const char                  *name,
-                               const char                  *command);
-
-
-/*
- * GSettings functions
- */
-static void
-edit_command_response (GtkDialog                   *dialog,
-                       int                          response_id,
-                       ValentRuncommandPreferences *self)
-{
-  ValentRuncommandEditor *editor = VALENT_RUNCOMMAND_EDITOR (dialog);
-
-  g_assert (VALENT_IS_RUNCOMMAND_EDITOR (editor));
-
-  if (response_id == GTK_RESPONSE_ACCEPT)
-    {
-      const char *command;
-      const char *name;
-      const char *uuid;
-
-      command = valent_runcommand_editor_get_command (editor);
-      name = valent_runcommand_editor_get_name (editor);
-      uuid = valent_runcommand_editor_get_uuid (editor);
-      save_command (self, uuid, name, command);
-    }
-
-  valent_runcommand_editor_clear (editor);
-  gtk_window_close (GTK_WINDOW (dialog));
-}
-
-static void
-edit_command (ValentRuncommandPreferences *self,
-              const char                  *uuid,
-              const char                  *name,
-              const char                  *command)
-{
-  ValentRuncommandEditor *editor;
-
-  if (self->command_dialog == NULL)
-    {
-      GtkRoot *window;
-
-      window = gtk_widget_get_root (GTK_WIDGET (self));
-      self->command_dialog = g_object_new (VALENT_TYPE_RUNCOMMAND_EDITOR,
-                                           "use-header-bar", TRUE,
-                                           "modal",          (window != NULL),
-                                           "transient-for",  window,
-                                           NULL);
-
-      g_signal_connect (self->command_dialog,
-                        "response",
-                        G_CALLBACK (edit_command_response),
-                        self);
-      g_object_add_weak_pointer (G_OBJECT (self->command_dialog),
-                                 (gpointer) &self->command_dialog);
-    }
-
-
-  editor = VALENT_RUNCOMMAND_EDITOR (self->command_dialog);
-  valent_runcommand_editor_set_uuid (editor, uuid);
-  valent_runcommand_editor_set_name (editor, name);
-  valent_runcommand_editor_set_command (editor, command);
-
-  gtk_window_present_with_time (self->command_dialog, GDK_CURRENT_TIME);
-}
-
-static void
-remove_command (ValentRuncommandPreferences *self,
-                const char                  *uuid)
-{
-  ValentDevicePreferencesPage *page = VALENT_DEVICE_PREFERENCES_PAGE (self);
-  GSettings *settings;
-  g_autoptr (GVariant) commands = NULL;
-  GVariantDict dict;
-  GVariant *value;
-
-  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
-
-  settings = valent_device_preferences_page_get_settings (page);
-  commands = g_settings_get_value (settings, "commands");
-
-  g_variant_dict_init (&dict, commands);
-  g_variant_dict_remove (&dict, uuid);
-  value = g_variant_dict_end (&dict);
-
-  g_settings_set_value (settings, "commands", value);
-}
-
-static void
-save_command (ValentRuncommandPreferences *self,
-              const char                  *uuid,
-              const char                  *name,
-              const char                  *command)
-{
-  ValentDevicePreferencesPage *page = VALENT_DEVICE_PREFERENCES_PAGE (self);
-  GSettings *settings;
-  g_autoptr (GVariant) commands = NULL;
-  GVariantDict dict;
-  GVariant *item;
-  GVariant *value;
-
-  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
-
-  settings = valent_device_preferences_page_get_settings (page);
-  commands = g_settings_get_value (settings, "commands");
-
-  item = g_variant_new_parsed ("{'name': <%s>, 'command': <%s>}",
-                               name,
-                               command);
-
-  g_variant_dict_init (&dict, commands);
-  g_variant_dict_insert_value (&dict, uuid, item);
-  value = g_variant_dict_end (&dict);
-
-  g_settings_set_value (settings, "commands", value);
-}
-
-static void
-on_commands_changed (GSettings                   *settings,
-                     const char                  *key,
-                     ValentRuncommandPreferences *self)
-{
-  g_assert (G_IS_SETTINGS (settings));
-  g_assert (key != NULL);
-  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
-
-  populate_commands (self);
-}
-
-/*
- * UI Callbacks
- */
-static void
-on_add_command (GtkListBox                  *box,
-                GtkListBoxRow               *row,
-                ValentRuncommandPreferences *self)
-{
-  g_autofree char *uuid = NULL;
-
-  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
-
-  uuid = g_uuid_string_random ();
-  edit_command (self, uuid, "", "");
-}
-
-static void
-on_edit_command (GtkButton                   *button,
-                 ValentRuncommandPreferences *self)
-{
-  GtkWidget *row;
-  const char *name;
-  const char *command;
-  const char *uuid;
-
-  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
-
-  row = gtk_widget_get_ancestor (GTK_WIDGET (button), GTK_TYPE_LIST_BOX_ROW);
-  uuid = gtk_widget_get_name (row);
-  name = adw_preferences_row_get_title (ADW_PREFERENCES_ROW (row));
-  command = adw_action_row_get_subtitle (ADW_ACTION_ROW (row));
-
-  edit_command (self, uuid, name, command);
-}
-
-static void
-on_remove_command (GtkButton                   *button,
-                   ValentRuncommandPreferences *self)
-{
-  GtkWidget *row;
-  const char *uuid;
-
-  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
-
-  row = gtk_widget_get_ancestor (GTK_WIDGET (button), GTK_TYPE_LIST_BOX_ROW);
-  uuid = gtk_widget_get_name (GTK_WIDGET (row));
-  remove_command (self, uuid);
-}
-
 /*
  * Rows
  */
 static void
-add_command_row (ValentRuncommandPreferences *self,
-                 const char                  *uuid,
-                 const char                  *name,
-                 const char                  *command)
-{
-  GtkWidget *row;
-  GtkWidget *edit;
-  GtkWidget *delete;
-  GtkWidget *buttons;
-
-  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
-
-  /* Row */
-  row = g_object_new (ADW_TYPE_ACTION_ROW,
-                      "name",        uuid,
-                      "title",       name,
-                      "subtitle",    command,
-                      "activatable", FALSE,
-                      NULL);
-
-  /* Buttons */
-  buttons = g_object_new (GTK_TYPE_BOX,
-                          "orientation", GTK_ORIENTATION_HORIZONTAL,
-                          "spacing",     6,
-                          "valign",      GTK_ALIGN_CENTER,
-                          NULL);
-  adw_action_row_add_suffix (ADW_ACTION_ROW (row), buttons);
-
-  edit = g_object_new (GTK_TYPE_BUTTON,
-                       "icon-name",    "document-edit-symbolic",
-                       "tooltip-text", _("Edit"),
-                       NULL);
-  gtk_box_insert_child_after (GTK_BOX (buttons), edit, NULL);
-  g_signal_connect (G_OBJECT (edit),
-                    "clicked",
-                    G_CALLBACK (on_edit_command),
-                    self);
-
-  delete = g_object_new (GTK_TYPE_BUTTON,
-                         "icon-name",    "edit-delete-symbolic",
-                         "tooltip-text", _("Remove"),
-                         NULL);
-  gtk_box_insert_child_after (GTK_BOX (buttons), delete, edit);
-  g_signal_connect (G_OBJECT (delete),
-                    "clicked",
-                    G_CALLBACK (on_remove_command),
-                    self);
-
-  gtk_list_box_insert (self->command_list, row, -1);
-}
-
-static void
-populate_commands (ValentRuncommandPreferences *self)
+valent_runcommand_preferences_populate (ValentRuncommandPreferences *self)
 {
   ValentDevicePreferencesPage *page = VALENT_DEVICE_PREFERENCES_PAGE (self);
-  GtkWidget *child;
   GSettings *settings;
+  GtkWidget *child;
   g_autoptr (GVariant) commands = NULL;
   GVariantIter iter;
   char *uuid;
@@ -290,8 +46,15 @@ populate_commands (ValentRuncommandPreferences *self)
 
   g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
 
-  while ((child = gtk_widget_get_first_child (GTK_WIDGET (self->command_list))))
-    gtk_list_box_remove (self->command_list, child);
+  for (child = gtk_widget_get_first_child (GTK_WIDGET (self->command_list));
+       child != NULL;)
+    {
+      GtkWidget *current_child = child;
+      child = gtk_widget_get_next_sibling (current_child);
+
+      if (self->command_placeholder != current_child)
+        gtk_list_box_remove (self->command_list, current_child);
+    }
 
   settings = valent_device_preferences_page_get_settings (page);
   commands = g_settings_get_value (settings, "commands");
@@ -305,7 +68,25 @@ populate_commands (ValentRuncommandPreferences *self)
 
       if (g_variant_lookup (item, "name", "&s", &name) &&
           g_variant_lookup (item, "command", "&s", &command))
-        add_command_row (self, uuid, name, command);
+        {
+          GtkWidget *row;
+          GtkWidget *arrow;
+
+          row = g_object_new (ADW_TYPE_ACTION_ROW,
+                              "name",          uuid,
+                              "title",         name,
+                              "subtitle",      command,
+                              "activatable",   TRUE,
+                              "action-target", g_variant_new_string (uuid),
+                              "action-name",   "runcommand.edit",
+                              NULL);
+
+          arrow = gtk_image_new_from_icon_name ("go-next-symbolic");
+          gtk_widget_add_css_class (arrow, "dim-label");
+          adw_action_row_add_suffix (ADW_ACTION_ROW (row), arrow);
+
+          gtk_list_box_append (self->command_list, row);
+        }
 
       g_clear_pointer (&uuid, g_free);
       g_clear_pointer (&item, g_variant_unref);
@@ -327,64 +108,134 @@ sort_commands (GtkListBoxRow *row1,
 }
 
 /*
- * Options
+ * GAction
  */
 static void
-on_isolate_subprocesses_response (GtkDialog                   *dialog,
-                                  int                          response_id,
-                                  ValentRuncommandPreferences *self)
+on_command_changed (ValentRuncommandEditor      *editor,
+                    GParamSpec                  *pspec,
+                    ValentRuncommandPreferences *self)
 {
-  if (response_id == GTK_RESPONSE_ACCEPT)
-    {
-      gtk_switch_set_state (self->isolate_subprocesses, FALSE);
-      gtk_switch_set_active (self->isolate_subprocesses, FALSE);
-    }
+  const char *uuid;
+  GVariant *command;
+
+  g_assert (VALENT_IS_RUNCOMMAND_EDITOR (editor));
+  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
+
+  uuid = valent_runcommand_editor_get_uuid (editor);
+  command = valent_runcommand_editor_get_command (editor);
+
+  if (command != NULL)
+    gtk_widget_activate_action (GTK_WIDGET (self), "runcommand.save", "s", uuid);
   else
-    {
-      gtk_switch_set_state (self->isolate_subprocesses, TRUE);
-      gtk_switch_set_active (self->isolate_subprocesses, TRUE);
-    }
+    gtk_widget_activate_action (GTK_WIDGET (self), "runcommand.remove", "s", uuid);
 
-  gtk_window_destroy (GTK_WINDOW (dialog));
+  gtk_window_destroy (GTK_WINDOW (editor));
 }
 
-static gboolean
-on_isolate_subprocesses_changed (GtkSwitch                   *sw,
-                                 gboolean                     state,
-                                 ValentRuncommandPreferences *self)
+static void
+runcommand_add_action (GtkWidget  *widget,
+                       const char *action_name,
+                       GVariant   *parameter)
 {
-  GtkRoot *root;
-  GtkDialog *dialog;
-  GtkWidget *button;
+  g_autofree char *uuid = NULL;
 
-  if (state == TRUE)
-    return FALSE;
+  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (widget));
 
-  root = gtk_widget_get_root (GTK_WIDGET (self));
-  dialog = g_object_new (GTK_TYPE_MESSAGE_DIALOG,
-                         "text",           _("Run Unrestricted?"),
-                         "secondary-text", _("Commands will be run on the host "
-                                             "system without restriction."),
-                         "message-type",   GTK_MESSAGE_WARNING,
-                         "modal",          TRUE,
-                         "transient-for",  root,
-                         NULL);
-
-  gtk_dialog_add_button (dialog, _("Cancel"), GTK_RESPONSE_CANCEL);
-  button = gtk_button_new_with_label (_("I Understand"));
-  gtk_widget_add_css_class (button, "destructive-action");
-  gtk_dialog_add_action_widget (dialog, button, GTK_RESPONSE_ACCEPT);
-
-  g_signal_connect (dialog,
-                    "response",
-                    G_CALLBACK (on_isolate_subprocesses_response),
-                    self);
-
-  gtk_window_present_with_time (GTK_WINDOW (dialog), GDK_CURRENT_TIME);
-
-  return TRUE;
+  uuid = g_uuid_string_random ();
+  gtk_widget_activate_action (widget, "runcommand.edit", "s", uuid);
 }
 
+static void
+runcommand_edit_action (GtkWidget  *widget,
+                        const char *action_name,
+                        GVariant   *parameter)
+{
+  ValentRuncommandPreferences *self = VALENT_RUNCOMMAND_PREFERENCES (widget);
+  ValentDevicePreferencesPage *page = VALENT_DEVICE_PREFERENCES_PAGE (self);
+  const char *uuid = NULL;
+  GSettings *settings;
+  GtkRoot *window;
+  g_autoptr (GVariant) commands = NULL;
+  g_autoptr (GVariant) command = NULL;
+
+  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
+
+  uuid = g_variant_get_string (parameter, NULL);
+  settings = valent_device_preferences_page_get_settings (page);
+  commands = g_settings_get_value (settings, "commands");
+  g_variant_lookup (commands, uuid, "@a{sv}", &command);
+
+  window = gtk_widget_get_root (GTK_WIDGET (self));
+  self->editor = g_object_new (VALENT_TYPE_RUNCOMMAND_EDITOR,
+                               "uuid",          uuid,
+                               "command",       command,
+                               "modal",         (window != NULL),
+                               "transient-for", window,
+                               NULL);
+  g_object_add_weak_pointer (G_OBJECT (self->editor),
+                             (gpointer) &self->editor);
+  g_signal_connect_object (self->editor,
+                           "notify::command",
+                           G_CALLBACK (on_command_changed),
+                           self, 0);
+
+  gtk_window_present_with_time (self->editor, GDK_CURRENT_TIME);
+}
+
+static void
+runcommand_save_action (GtkWidget  *widget,
+                        const char *action_name,
+                        GVariant   *parameter)
+{
+  ValentRuncommandPreferences *self = VALENT_RUNCOMMAND_PREFERENCES (widget);
+  ValentDevicePreferencesPage *page = VALENT_DEVICE_PREFERENCES_PAGE (self);
+  GSettings *settings;
+  g_autoptr (GVariant) commands = NULL;
+  GVariant *command;
+  const char *uuid;
+  GVariantDict dict;
+  GVariant *value;
+
+  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
+
+  settings = valent_device_preferences_page_get_settings (page);
+  commands = g_settings_get_value (settings, "commands");
+
+  uuid = valent_runcommand_editor_get_uuid (VALENT_RUNCOMMAND_EDITOR (self->editor));
+  command = valent_runcommand_editor_get_command (VALENT_RUNCOMMAND_EDITOR (self->editor));
+
+  g_variant_dict_init (&dict, commands);
+  g_variant_dict_insert_value (&dict, uuid, command);
+  value = g_variant_dict_end (&dict);
+
+  g_settings_set_value (settings, "commands", value);
+}
+
+static void
+runcommand_remove_action (GtkWidget  *widget,
+                          const char *action_name,
+                          GVariant   *parameter)
+{
+  ValentRuncommandPreferences *self = VALENT_RUNCOMMAND_PREFERENCES (widget);
+  ValentDevicePreferencesPage *page = VALENT_DEVICE_PREFERENCES_PAGE (self);
+  GSettings *settings;
+  g_autoptr (GVariant) commands = NULL;
+  GVariantDict dict;
+  GVariant *value;
+  const char *uuid = NULL;
+
+  g_assert (VALENT_IS_RUNCOMMAND_PREFERENCES (self));
+
+  uuid = g_variant_get_string (parameter, NULL);
+  settings = valent_device_preferences_page_get_settings (page);
+  commands = g_settings_get_value (settings, "commands");
+
+  g_variant_dict_init (&dict, commands);
+  g_variant_dict_remove (&dict, uuid);
+  value = g_variant_dict_end (&dict);
+
+  g_settings_set_value (settings, "commands", value);
+}
 
 /*
  * GObject
@@ -396,38 +247,17 @@ valent_runcommand_preferences_constructed (GObject *object)
   ValentDevicePreferencesPage *page = VALENT_DEVICE_PREFERENCES_PAGE (self);
   GSettings *settings;
 
+  gtk_list_box_set_sort_func (self->command_list, sort_commands, self, NULL);
+
   /* Setup GSettings */
   settings = valent_device_preferences_page_get_settings (page);
 
-  g_signal_connect (settings,
-                    "changed::commands",
-                    G_CALLBACK (on_commands_changed),
-                    self);
-
-  /* Populate list */
-  gtk_list_box_set_sort_func (self->command_list, sort_commands, self, NULL);
-  populate_commands (self);
-
-  /* Options */
-  if (!valent_runcommand_can_spawn_host ())
-    {
-      gtk_widget_set_sensitive (GTK_WIDGET (self->isolate_subprocesses), FALSE);
-      gtk_switch_set_active (self->isolate_subprocesses, TRUE);
-    }
-  else if (!xdp_portal_running_under_flatpak ())
-    {
-      gtk_widget_set_sensitive (GTK_WIDGET (self->isolate_subprocesses), FALSE);
-      gtk_switch_set_active (self->isolate_subprocesses, FALSE);
-    }
-  else
-    {
-      gtk_widget_set_sensitive (GTK_WIDGET (self->isolate_subprocesses), TRUE);
-      g_settings_bind (settings,
-                       "isolate-subprocesses",
-                       self->isolate_subprocesses,
-                       "active",
-                       G_SETTINGS_BIND_DEFAULT);
-    }
+  g_signal_connect_object (settings,
+                           "changed::commands",
+                           G_CALLBACK (valent_runcommand_preferences_populate),
+                           self,
+                           G_CONNECT_SWAPPED);
+  valent_runcommand_preferences_populate (self);
 
   G_OBJECT_CLASS (valent_runcommand_preferences_parent_class)->constructed (object);
 }
@@ -437,7 +267,7 @@ valent_runcommand_preferences_finalize (GObject *object)
 {
   ValentRuncommandPreferences *self = VALENT_RUNCOMMAND_PREFERENCES (object);
 
-  g_clear_pointer (&self->command_dialog, gtk_window_destroy);
+  g_clear_pointer (&self->editor, gtk_window_destroy);
 
   G_OBJECT_CLASS (valent_runcommand_preferences_parent_class)->finalize (object);
 }
@@ -454,12 +284,12 @@ valent_runcommand_preferences_class_init (ValentRuncommandPreferencesClass *klas
   gtk_widget_class_set_template_from_resource (widget_class, "/plugins/runcommand/valent-runcommand-preferences.ui");
   gtk_widget_class_bind_template_child (widget_class, ValentRuncommandPreferences, command_group);
   gtk_widget_class_bind_template_child (widget_class, ValentRuncommandPreferences, command_list);
-  gtk_widget_class_bind_template_child (widget_class, ValentRuncommandPreferences, command_add);
-  gtk_widget_class_bind_template_child (widget_class, ValentRuncommandPreferences, restrictions_group);
-  gtk_widget_class_bind_template_child (widget_class, ValentRuncommandPreferences, isolate_subprocesses);
+  gtk_widget_class_bind_template_child (widget_class, ValentRuncommandPreferences, command_placeholder);
 
-  gtk_widget_class_bind_template_callback (widget_class, on_add_command);
-  gtk_widget_class_bind_template_callback (widget_class, on_isolate_subprocesses_changed);
+  gtk_widget_class_install_action (widget_class, "runcommand.add", NULL, runcommand_add_action);
+  gtk_widget_class_install_action (widget_class, "runcommand.edit", "s", runcommand_edit_action);
+  gtk_widget_class_install_action (widget_class, "runcommand.remove", "s", runcommand_remove_action);
+  gtk_widget_class_install_action (widget_class, "runcommand.save", "s", runcommand_save_action);
 }
 
 static void
