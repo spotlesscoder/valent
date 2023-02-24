@@ -19,6 +19,7 @@
 #include <libvalent-session.h>
 #include <libvalent-ui.h>
 
+#include "libvalent-ui-private.h"
 #include "libvalent-ui-resources.h"
 #include "valent-component-private.h"
 #include "valent-contact-cache-private.h"
@@ -533,6 +534,7 @@ valent_type_ensure (void)
   /* UI */
   g_type_ensure (VALENT_TYPE_APPLICATION);
   g_type_ensure (VALENT_TYPE_APPLICATION_PLUGIN);
+  g_type_ensure (VALENT_TYPE_DATE_LABEL);
 
   g_type_ensure (VALENT_TYPE_DEVICE_GADGET);
   g_type_ensure (VALENT_TYPE_DEVICE_PREFERENCES_PAGE);

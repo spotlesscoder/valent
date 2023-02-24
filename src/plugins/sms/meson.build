@@ -21,7 +21,6 @@ plugin_sms_sources = files([
   'valent-sms-utils.c',
   'valent-sms-window.c',
 
-  'valent-date-label.c',
   'valent-message-row.c',
 ])
 

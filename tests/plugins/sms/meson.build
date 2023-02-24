@@ -9,7 +9,6 @@ plugin_sms_test_deps = [
 
 plugin_sms_tests = [
   'test-contact-row',
-  'test-date-label',
   'test-message',
   'test-message-row',
   'test-message-thread',

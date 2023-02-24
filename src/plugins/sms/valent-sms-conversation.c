@@ -9,7 +9,7 @@
 #include <gtk/gtk.h>
 #include <libvalent-contacts.h>
 
-#include "valent-date-label.h"
+#include "libvalent-ui-private.h"
 #include "valent-message.h"
 #include "valent-message-thread.h"
 #include "valent-sms-conversation.h"

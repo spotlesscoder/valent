@@ -11,7 +11,7 @@
 #include <libvalent-contacts.h>
 #include <libvalent-core.h>
 
-#include "valent-date-label.h"
+#include "libvalent-ui-private.h"
 #include "valent-message-row.h"
 #include "valent-message.h"
 #include "valent-sms-utils.h"

@@ -20,7 +20,9 @@ libvalent_ui_public_headers = [
 ]
 
 libvalent_ui_private_headers = [
+  'libvalent-ui-private.h',
   'valent-application-credits.h',
+  'valent-date-label.h',
   'valent-device-page.h',
   'valent-device-preferences-window.h',
   'valent-menu-list.h',
@@ -39,6 +41,7 @@ install_headers(libvalent_ui_public_headers,
 libvalent_ui_public_sources = [
   'valent-application.c',
   'valent-application-plugin.c',
+  'valent-date-label.c',
   'valent-device-gadget.c',
   'valent-device-page.c',
   'valent-device-preferences-page.c',

@@ -14,6 +14,7 @@ src/libvalent/ui/valent-device-preferences-window.ui
 src/libvalent/ui/valent-menu-list.c
 src/libvalent/ui/valent-preferences-window.c
 src/libvalent/ui/valent-preferences-window.ui
+src/libvalent/ui/valent-ui-utils.c
 src/libvalent/ui/valent-window.c
 src/libvalent/ui/valent-window.ui
 src/main.c
@@ -88,7 +89,6 @@ src/plugins/share/valent-share-text-dialog.c
 src/plugins/share/valent-share-text-dialog.ui
 src/plugins/sms/sms.plugin.desktop.in
 src/plugins/sms/valent-contact-row.c
-src/plugins/sms/valent-date-label.c
 src/plugins/sms/valent-sms-conversation.c
 src/plugins/sms/valent-sms-conversation.ui
 src/plugins/sms/valent-sms-plugin.c

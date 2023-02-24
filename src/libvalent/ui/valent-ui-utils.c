@@ -5,9 +5,12 @@
 
 #include "config.h"
 
+#include <glib/gi18n.h>
 #include <pango/pango.h>
-
 #include <libvalent-core.h>
+
+#include "valent-ui-utils.h"
+
 
 // Andy Holmes
 #define EMAIL_PATTERN "\\b(?:.+@.+\\.[a-z]{2,4}\\b)"
@@ -107,4 +110,3 @@ valent_string_to_markup (const char *text)
 
   return g_steal_pointer (&result);
 }
-
