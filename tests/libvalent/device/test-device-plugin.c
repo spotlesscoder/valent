@@ -5,8 +5,6 @@
 #include <libvalent-core.h>
 #include <libvalent-test.h>
 
-#include "valent-device-private.h"
-
 
 typedef struct
 {

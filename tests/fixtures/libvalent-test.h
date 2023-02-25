@@ -3,6 +3,11 @@
 
 #pragma once
 
+#include <libvalent-core-private.h>
+#include <libvalent-contacts-private.h>
+#include <libvalent-device-private.h>
+#include <libvalent-ui-private.h>
+
 #define VALENT_TEST_INSIDE
 
 #include "valent-test-fixture.h"

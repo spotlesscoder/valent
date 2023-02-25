@@ -7,8 +7,8 @@
 
 #include <gio/gio.h>
 #include <libvalent-contacts.h>
+#include <libvalent-contacts-private.h>
 
-#include "valent-contact-cache-private.h"
 #include "valent-mock-contacts-adapter.h"
 
 

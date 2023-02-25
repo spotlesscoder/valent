@@ -7,7 +7,9 @@
 
 G_BEGIN_DECLS
 
-PeasExtension * valent_component_get_preferred (ValentComponent *self);
+PeasExtension * valent_component_get_preferred   (ValentComponent *self);
+GSettings     * valent_component_create_settings (const char      *context,
+                                                  const char      *module_name);
 
 G_END_DECLS
 

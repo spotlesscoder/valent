@@ -4,9 +4,6 @@
 #include <libvalent-test.h>
 #include <libvalent-ui.h>
 
-#include "valent-device-private.h"
-#include "valent-window.h"
-
 
 typedef struct
 {

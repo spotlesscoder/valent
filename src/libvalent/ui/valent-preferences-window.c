@@ -10,6 +10,7 @@
 #include <gtk/gtk.h>
 #include <pango/pango.h>
 #include <libvalent-core.h>
+#include <libvalent-core-private.h>
 #include <libvalent-clipboard.h>
 #include <libvalent-contacts.h>
 #include <libvalent-device.h>

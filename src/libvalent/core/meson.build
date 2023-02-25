@@ -21,6 +21,7 @@ libvalent_core_public_headers = [
 ]
 
 libvalent_core_private_headers = [
+  'libvalent-core-private.h',
   'valent-component-private.h',
 ]
 

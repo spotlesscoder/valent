@@ -21,6 +21,7 @@ libvalent_device_public_headers = [
 ]
 
 libvalent_device_private_headers = [
+  'libvalent-device-private.h',
   'valent-device-impl.h',
   'valent-device-private.h',
 ]

@@ -8,6 +8,7 @@
 #include <adwaita.h>
 #include <gtk/gtk.h>
 #include <libvalent-core.h>
+#include <libvalent-core-private.h>
 #include <libvalent-device.h>
 
 #include "valent-application.h"

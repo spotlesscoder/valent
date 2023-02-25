@@ -4,8 +4,6 @@
 #include <libvalent-test.h>
 #include <libvalent-ui.h>
 
-#include "valent-device-page.h"
-
 
 static void
 test_device_page_basic (ValentTestFixture *fixture,

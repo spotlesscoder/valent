@@ -18,6 +18,7 @@ libvalent_contacts_public_headers = [
 ]
 
 libvalent_contacts_private_headers = [
+  'libvalent-contacts-private.h',
   'valent-contact-cache-private.h',
 ]
 

@@ -3,12 +3,12 @@
 
 #include <libvalent-core.h>
 #include <libvalent-device.h>
+#include <libvalent-device-private.h>
 
 #ifdef HAVE_WALBOTTLE
 # include <libwalbottle/wbl-schema.h>
 #endif /* HAVE_WALBOTTLE */
 
-#include "valent-device-private.h"
 #include "valent-test-fixture.h"
 #include "valent-test-utils.h"
 

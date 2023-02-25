@@ -7,6 +7,7 @@
 
 #include <gio/gio.h>
 #include <libvalent-core.h>
+#include <libvalent-core-private.h>
 
 #include "valent-channel.h"
 #include "valent-channel-service.h"
@@ -868,6 +869,8 @@ valent_device_manager_class_init (ValentDeviceManagerClass *klass)
                           G_PARAM_STATIC_STRINGS));
 
   g_object_class_install_properties (object_class, N_PROPERTIES, properties);
+
+  g_type_ensure (VALENT_TYPE_DEVICE_IMPL);
 }
 
 static void

@@ -20,6 +20,7 @@ libvalent_ui_public_headers = [
 ]
 
 libvalent_ui_private_headers = [
+  'libvalent-ui-private.h',
   'valent-application-credits.h',
   'valent-device-page.h',
   'valent-device-preferences-window.h',

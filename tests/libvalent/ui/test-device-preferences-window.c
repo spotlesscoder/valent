@@ -4,8 +4,6 @@
 #include <libvalent-test.h>
 #include <libvalent-ui.h>
 
-#include "valent-device-preferences-window.h"
-
 
 static void
 test_device_preference_window_basic (ValentTestFixture *fixture,

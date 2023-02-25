@@ -4,8 +4,6 @@
 #include <libvalent-test.h>
 #include <libvalent-ui.h>
 
-#include "valent-preferences-window.h"
-
 
 static void
 test_preferences_window_basic (void)

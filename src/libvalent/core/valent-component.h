@@ -36,9 +36,5 @@ struct _ValentComponentClass
   gpointer            padding[8];
 };
 
-VALENT_AVAILABLE_IN_1_0
-GSettings * valent_component_create_settings (const char *context,
-                                              const char *module_name);
-
 G_END_DECLS
 
